@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS relationships (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS relationships_unique_edge
+ON relationships (scenario_id, source_entity_id, target_entity_id, relationship_type);
+
 CREATE TABLE IF NOT EXISTS event_entities (
   event_id UUID REFERENCES events(event_id),
   entity_id UUID REFERENCES entities(entity_id),

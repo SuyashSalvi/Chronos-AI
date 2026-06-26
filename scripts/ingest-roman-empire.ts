@@ -22,6 +22,17 @@ type EventRow = {
   coord?: string;
 };
 
+function getEntityIdByName(
+  entityNameToId: Map<string, string>,
+  name: string
+): string {
+  const id = entityNameToId.get(name);
+  if (!id) {
+    throw new Error(`Missing entity for relationship: ${name}`);
+  }
+  return id;
+}
+
 async function main() {
   const { pool } = await import("../src/lib/db/client");
   let client: PoolClient | undefined;
@@ -48,13 +59,15 @@ async function main() {
 
     const entities = await runSparqlQuery<EntityRow>(ROMAN_ENTITIES_QUERY);
     const events = await runSparqlQuery<EventRow>(ROMAN_EVENTS_QUERY);
+    const entityIdByWikidataId = new Map<string, string>();
+    const entityNameToId = new Map<string, string>();
 
     for (const row of entities) {
       const entityId = randomUUID();
       const wikidataId = getWikidataId(row.entity);
       const { latitude, longitude } = parsePoint(row.coord);
 
-      await client.query(
+      const result = await client.query(
         `
         INSERT INTO entities (
           entity_id,
@@ -68,7 +81,15 @@ async function main() {
           metadata_json
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-        ON CONFLICT (wikidata_id) DO NOTHING
+        ON CONFLICT (wikidata_id)
+        DO UPDATE SET
+          name = EXCLUDED.name,
+          entity_type = EXCLUDED.entity_type,
+          summary = EXCLUDED.summary,
+          latitude = EXCLUDED.latitude,
+          longitude = EXCLUDED.longitude,
+          metadata_json = EXCLUDED.metadata_json
+        RETURNING entity_id
         `,
         [
           entityId,
@@ -85,6 +106,11 @@ async function main() {
           },
         ]
       );
+
+      const dbEntityId = result.rows[0].entity_id;
+
+      entityIdByWikidataId.set(wikidataId, dbEntityId);
+      entityNameToId.set(row.entityLabel, dbEntityId);
     }
 
     for (const row of events) {
@@ -127,6 +153,47 @@ async function main() {
             raw_uri: row.event,
             raw_date: row.date ?? null,
           },
+        ]
+      );
+    }
+
+    const relationships = [
+      ["Roman Empire", "Western Roman Empire", "split_into"],
+      ["Roman Empire", "Byzantine Empire", "split_into"],
+      ["Augustus", "Roman Empire", "ruled"],
+      ["Constantine the Great", "Roman Empire", "ruled"],
+      ["Constantine the Great", "Constantinople", "founded"],
+    ];
+
+    for (const [sourceName, targetName, relationshipType] of relationships) {
+      const sourceId = getEntityIdByName(entityNameToId, sourceName);
+      const targetId = getEntityIdByName(entityNameToId, targetName);
+
+      await client.query(
+        `
+        INSERT INTO relationships (
+          relationship_id,
+          scenario_id,
+          source_entity_id,
+          target_entity_id,
+          relationship_type,
+          confidence_score,
+          source_metadata
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
+        ON CONFLICT (scenario_id, source_entity_id, target_entity_id, relationship_type)
+        DO UPDATE SET
+          confidence_score = EXCLUDED.confidence_score,
+          source_metadata = EXCLUDED.source_metadata
+        `,
+        [
+          randomUUID(),
+          scenarioId,
+          sourceId,
+          targetId,
+          relationshipType,
+          0.8,
+          { source: "manual_wikidata_seed" },
         ]
       );
     }

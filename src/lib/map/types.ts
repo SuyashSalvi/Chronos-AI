@@ -62,6 +62,11 @@ export type HistoricalMapFilters = {
   categories: HistoricalMapCategory[];
 };
 
+export type HistoricalMapViewport = {
+  bounds: HistoricalMapBounds;
+  zoom: number;
+};
+
 export const historicalMapRecordTypes: HistoricalMapRecordType[] = ["event", "entity"];
 
 export const historicalMapCategories: HistoricalMapCategory[] = [

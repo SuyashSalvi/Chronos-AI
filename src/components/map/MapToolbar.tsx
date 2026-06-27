@@ -4,9 +4,12 @@ type MapToolbarProps = {
   zoom: number;
   loadedMarkers: number;
   totalMarkers: number;
+  hasViewportChanges: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onPan: (direction: "up" | "down" | "left" | "right") => void;
+  onFitMarkers: () => void;
+  onSearchViewport: () => void;
   onReset: () => void;
 };
 
@@ -14,9 +17,12 @@ export function MapToolbar({
   zoom,
   loadedMarkers,
   totalMarkers,
+  hasViewportChanges,
   onZoomIn,
   onZoomOut,
   onPan,
+  onFitMarkers,
+  onSearchViewport,
   onReset,
 }: MapToolbarProps) {
   return (
@@ -48,6 +54,17 @@ export function MapToolbar({
         </button>
         <button type="button" onClick={() => onPan("right")} className="grid h-10 w-10 place-items-center border border-white/15 bg-white/[0.04] text-bone" aria-label="Pan right">
           {">"}
+        </button>
+        <button type="button" onClick={onFitMarkers} className="h-10 border border-white/15 bg-white/[0.04] px-4 text-sm font-semibold text-bone/70">
+          Fit markers
+        </button>
+        <button
+          type="button"
+          onClick={onSearchViewport}
+          disabled={!hasViewportChanges}
+          className="h-10 border border-brass/60 bg-brass/10 px-4 text-sm font-semibold text-[#e3bf78] disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Search visible map
         </button>
         <button type="button" onClick={onReset} className="h-10 border border-verdigris/60 bg-verdigris/10 px-4 text-sm font-semibold text-[#91d9d4]">
           Reset

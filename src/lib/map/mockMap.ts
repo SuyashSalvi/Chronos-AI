@@ -259,8 +259,8 @@ function isInYearRange(marker: HistoricalMapMarker, query: HistoricalMapQuery) {
 export function getMockHistoricalMapPage(query: HistoricalMapQuery): HistoricalMapPage {
   const limit = Math.min(Math.max(query.limit ?? 80, 1), 150);
   const offset = decodeCursor(query.cursor);
-  const recordTypes = query.recordTypes?.length ? new Set(query.recordTypes) : new Set(historicalMapRecordTypes);
-  const categories = query.categories?.length ? new Set(query.categories) : undefined;
+  const recordTypes = query.recordTypes ? new Set(query.recordTypes) : new Set(historicalMapRecordTypes);
+  const categories = query.categories ? new Set(query.categories) : undefined;
   const search = query.query?.trim().toLowerCase();
   const generatedCount = 140;
 

@@ -2,14 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DivIcon, LayerGroup, Map as LeafletMap } from "leaflet";
-import type { HistoricalMapCategory, HistoricalMapMarker } from "../../lib/map/types";
+import type {
+  HistoricalMapBounds,
+  HistoricalMapCategory,
+  HistoricalMapMarker,
+  HistoricalMapViewport,
+} from "../../lib/map/types";
 
 type HistoricalMapProps = {
   markers: HistoricalMapMarker[];
   selectedMarkerId?: string;
   zoom: number;
   pan: { x: number; y: number };
+  fitRequestId: number;
   onSelect: (marker: HistoricalMapMarker) => void;
+  onViewportChange: (viewport: HistoricalMapViewport) => void;
 };
 
 const categoryColors: Record<HistoricalMapCategory, string> = {
@@ -47,7 +54,26 @@ function markerIcon(leaflet: typeof import("leaflet"), marker: HistoricalMapMark
   });
 }
 
-export function HistoricalMap({ markers, selectedMarkerId, zoom, pan, onSelect }: HistoricalMapProps) {
+function toHistoricalBounds(map: LeafletMap): HistoricalMapBounds {
+  const bounds = map.getBounds();
+
+  return {
+    west: Number(bounds.getWest().toFixed(4)),
+    south: Number(bounds.getSouth().toFixed(4)),
+    east: Number(bounds.getEast().toFixed(4)),
+    north: Number(bounds.getNorth().toFixed(4)),
+  };
+}
+
+export function HistoricalMap({
+  markers,
+  selectedMarkerId,
+  zoom,
+  pan,
+  fitRequestId,
+  onSelect,
+  onViewportChange,
+}: HistoricalMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerLayerRef = useRef<LayerGroup | null>(null);
@@ -90,6 +116,16 @@ export function HistoricalMap({ markers, selectedMarkerId, zoom, pan, onSelect }
 
       markerLayerRef.current = leaflet.layerGroup().addTo(map);
       mapRef.current = map;
+      map.on("moveend zoomend", () => {
+        onViewportChange({
+          bounds: toHistoricalBounds(map),
+          zoom: map.getZoom(),
+        });
+      });
+      onViewportChange({
+        bounds: toHistoricalBounds(map),
+        zoom: map.getZoom(),
+      });
       setMapReady(true);
     }
 
@@ -103,7 +139,7 @@ export function HistoricalMap({ markers, selectedMarkerId, zoom, pan, onSelect }
       leafletRef.current = null;
       setMapReady(false);
     };
-  }, []);
+  }, [onViewportChange]);
 
   useEffect(() => {
     const leaflet = leafletRef.current;
@@ -161,6 +197,17 @@ export function HistoricalMap({ markers, selectedMarkerId, zoom, pan, onSelect }
       mapRef.current.panBy([deltaX, deltaY], { animate: true, duration: 0.35 });
     }
   }, [pan]);
+
+  useEffect(() => {
+    const leaflet = leafletRef.current;
+    const map = mapRef.current;
+    if (!leaflet || !map || markers.length === 0) {
+      return;
+    }
+
+    const bounds = leaflet.latLngBounds(markers.map((marker) => [marker.latitude, marker.longitude]));
+    map.fitBounds(bounds, { animate: true, maxZoom: 7, padding: [44, 44] });
+  }, [fitRequestId, markers]);
 
   return (
     <section className="relative min-h-[680px] overflow-hidden bg-[#d8c7a6]">

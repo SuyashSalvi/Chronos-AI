@@ -21,7 +21,7 @@ function parseNumber(value: string | null) {
 }
 
 function parseRecordTypes(value: string | null): HistoricalMapRecordType[] | undefined {
-  if (!value) {
+  if (value === null) {
     return undefined;
   }
 
@@ -31,11 +31,11 @@ function parseRecordTypes(value: string | null): HistoricalMapRecordType[] | und
     .map((item) => item.trim())
     .filter((item): item is HistoricalMapRecordType => allowed.has(item as HistoricalMapRecordType));
 
-  return recordTypes.length > 0 ? recordTypes : undefined;
+  return recordTypes;
 }
 
 function parseCategories(value: string | null): HistoricalMapCategory[] | undefined {
-  if (!value) {
+  if (value === null) {
     return undefined;
   }
 
@@ -45,7 +45,7 @@ function parseCategories(value: string | null): HistoricalMapCategory[] | undefi
     .map((item) => item.trim())
     .filter((item): item is HistoricalMapCategory => allowed.has(item as HistoricalMapCategory));
 
-  return categories.length > 0 ? categories : undefined;
+  return categories;
 }
 
 function parseBounds(value: string | null): HistoricalMapBounds | undefined {

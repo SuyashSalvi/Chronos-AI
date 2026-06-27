@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { HistoricalMap, MapDetailsPanel, MapFilter, MapToolbar } from "../../src/components/map";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { HistoricalMap, MapDetailsPanel, MapFilter, MapMarkerList, MapToolbar } from "../../src/components/map";
 import {
   historicalMapCategories,
   historicalMapRecordTypes,
+  type HistoricalMapBounds,
   type HistoricalMapFilters,
   type HistoricalMapMarker,
   type HistoricalMapPage,
+  type HistoricalMapViewport,
 } from "../../src/lib/map/types";
 
 const defaultFilters: HistoricalMapFilters = {
@@ -18,12 +20,23 @@ const defaultFilters: HistoricalMapFilters = {
   categories: historicalMapCategories,
 };
 
-function buildMapUrl(filters: HistoricalMapFilters, cursor?: string) {
+const defaultBounds: HistoricalMapBounds = {
+  west: -12,
+  south: 25,
+  east: 45,
+  north: 56,
+};
+
+function serializeBounds(bounds: HistoricalMapBounds) {
+  return [bounds.west, bounds.south, bounds.east, bounds.north].join(",");
+}
+
+function buildMapUrl(filters: HistoricalMapFilters, bounds: HistoricalMapBounds, cursor?: string) {
   const params = new URLSearchParams({
     startYear: String(filters.startYear),
     endYear: String(filters.endYear),
     limit: "80",
-    bounds: "-12,25,45,56",
+    bounds: serializeBounds(bounds),
   });
 
   if (filters.query.trim()) {
@@ -72,10 +85,14 @@ export function MapExperience() {
   const [totalApprox, setTotalApprox] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [appliedBounds, setAppliedBounds] = useState(defaultBounds);
+  const [visibleBounds, setVisibleBounds] = useState(defaultBounds);
+  const [fitRequestId, setFitRequestId] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
+  const filterKey = useMemo(() => JSON.stringify({ filters, appliedBounds }), [appliedBounds, filters]);
+  const hasViewportChanges = serializeBounds(appliedBounds) !== serializeBounds(visibleBounds);
 
   useEffect(() => {
     let active = true;
@@ -85,7 +102,7 @@ export function MapExperience() {
       setError(null);
 
       try {
-        const response = await fetch(buildMapUrl(filters), { cache: "no-store" });
+        const response = await fetch(buildMapUrl(filters, appliedBounds), { cache: "no-store" });
         if (!response.ok) {
           throw new Error("Map marker request failed");
         }
@@ -117,7 +134,7 @@ export function MapExperience() {
     return () => {
       active = false;
     };
-  }, [filterKey]);
+  }, [appliedBounds, filterKey, filters]);
 
   async function loadNextWindow() {
     if (!nextCursor || isLoading) {
@@ -128,7 +145,7 @@ export function MapExperience() {
     setError(null);
 
     try {
-      const response = await fetch(buildMapUrl(filters, nextCursor), { cache: "no-store" });
+      const response = await fetch(buildMapUrl(filters, appliedBounds, nextCursor), { cache: "no-store" });
       if (!response.ok) {
         throw new Error("Map marker request failed");
       }
@@ -148,6 +165,9 @@ export function MapExperience() {
     setFilters(defaultFilters);
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    setAppliedBounds(defaultBounds);
+    setVisibleBounds(defaultBounds);
+    setFitRequestId((current) => current + 1);
   }
 
   function panMap(direction: "up" | "down" | "left" | "right") {
@@ -156,6 +176,19 @@ export function MapExperience() {
       x: direction === "left" ? current.x - step : direction === "right" ? current.x + step : current.x,
       y: direction === "up" ? current.y - step : direction === "down" ? current.y + step : current.y,
     }));
+  }
+
+  const handleViewportChange = useCallback((viewport: HistoricalMapViewport) => {
+    setVisibleBounds(viewport.bounds);
+    setZoom(Number(((viewport.zoom - 4) / 1.6).toFixed(1)));
+  }, []);
+
+  function searchVisibleMap() {
+    setAppliedBounds(visibleBounds);
+  }
+
+  function selectMarker(marker: HistoricalMapMarker) {
+    setSelectedMarker(marker);
   }
 
   return (
@@ -202,9 +235,12 @@ export function MapExperience() {
             zoom={zoom}
             loadedMarkers={markers.length}
             totalMarkers={totalApprox}
+            hasViewportChanges={hasViewportChanges}
             onZoomIn={() => setZoom((current) => Math.min(2.4, Number((current + 0.2).toFixed(1))))}
             onZoomOut={() => setZoom((current) => Math.max(0.8, Number((current - 0.2).toFixed(1))))}
             onPan={panMap}
+            onFitMarkers={() => setFitRequestId((current) => current + 1)}
+            onSearchViewport={searchVisibleMap}
             onReset={resetView}
           />
           <div className="grid lg:grid-cols-[300px_1fr] xl:grid-cols-[300px_1fr_320px]">
@@ -214,10 +250,13 @@ export function MapExperience() {
               selectedMarkerId={selectedMarker?.markerId}
               zoom={zoom}
               pan={pan}
-              onSelect={setSelectedMarker}
+              fitRequestId={fitRequestId}
+              onSelect={selectMarker}
+              onViewportChange={handleViewportChange}
             />
             <MapDetailsPanel marker={selectedMarker} />
           </div>
+          <MapMarkerList markers={markers} selectedMarkerId={selectedMarker?.markerId} onSelect={selectMarker} />
           <div className="border-t border-white/10 bg-[#171918] p-4">
             {error ? <p className="mb-3 text-sm text-[#e99180]">{error}</p> : null}
             <button

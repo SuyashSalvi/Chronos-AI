@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TimelineEventSummary } from "../../lib/timeline/types";
 import { TimelineEvent } from "./TimelineEvent";
 
 type TimelineProps = {
   events: TimelineEventSummary[];
   zoom: number;
+  activeEventId?: string;
+  activeEventIndex?: number;
   onSelect: (event: TimelineEventSummary) => void;
 };
 
 const viewportHeight = 680;
 const overscan = 8;
 
-export function Timeline({ events, zoom, onSelect }: TimelineProps) {
+export function Timeline({ events, zoom, activeEventId, activeEventIndex, onSelect }: TimelineProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const itemHeight = Math.max(124, 210 - zoom * 22);
   const visibleCount = Math.ceil(viewportHeight / itemHeight) + overscan * 2;
@@ -23,9 +26,19 @@ export function Timeline({ events, zoom, onSelect }: TimelineProps) {
   const totalHeight = events.length * itemHeight;
   const topSpacer = startIndex * itemHeight;
 
+  useEffect(() => {
+    if (typeof activeEventIndex !== "number" || !scrollRef.current) {
+      return;
+    }
+
+    const nextScrollTop = Math.max(0, activeEventIndex * itemHeight - viewportHeight * 0.36);
+    scrollRef.current.scrollTo({ top: nextScrollTop, behavior: "smooth" });
+  }, [activeEventIndex, itemHeight]);
+
   return (
     <section className="relative bg-[#101214]">
       <div
+        ref={scrollRef}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         className="h-[680px] overflow-y-auto scroll-smooth px-4 py-8 md:px-8"
       >
@@ -39,11 +52,22 @@ export function Timeline({ events, zoom, onSelect }: TimelineProps) {
         ) : (
           <div style={{ height: totalHeight }}>
             <div style={{ transform: `translateY(${topSpacer}px)` }} className="space-y-5">
-              {visibleEvents.map((event) => (
-                <div key={event.id} style={{ minHeight: itemHeight - 20 }}>
-                  <TimelineEvent event={event} onSelect={onSelect} />
-                </div>
-              ))}
+              {visibleEvents.map((event, index) => {
+                const eventIndex = startIndex + index;
+                const isActive = activeEventId === event.eventId;
+                const isPast = typeof activeEventIndex === "number" && eventIndex < activeEventIndex;
+
+                return (
+                  <div key={event.eventId} style={{ minHeight: itemHeight - 20 }}>
+                    <TimelineEvent
+                      event={event}
+                      isActive={isActive}
+                      isPast={isPast}
+                      onSelect={onSelect}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

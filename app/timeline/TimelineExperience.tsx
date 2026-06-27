@@ -247,6 +247,14 @@ export function TimelineExperience() {
             <p className="mt-4 max-w-2xl text-base leading-7 text-bone/66">
               Windowed timeline exploration built for Aurora-backed event volumes.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a href="/map" className="inline-flex h-10 items-center border border-white/15 bg-white/[0.04] px-4 text-sm font-semibold text-bone/70">
+                Map
+              </a>
+              <a href="/" className="inline-flex h-10 items-center border border-white/15 bg-white/[0.04] px-4 text-sm font-semibold text-bone/70">
+                Home
+              </a>
+            </div>
           </div>
           <div className="grid grid-cols-3 border border-white/10 bg-white/[0.035] text-center">
             <div className="border-r border-white/10 p-4">

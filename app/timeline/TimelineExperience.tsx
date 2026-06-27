@@ -6,6 +6,8 @@ import {
   Timeline,
   TimelineFilter,
   TimelineNavigation,
+  TimelinePlaybackControls,
+  TimelineSpotlight,
   TimelineToolbar,
 } from "../../src/components/timeline";
 import {
@@ -21,6 +23,8 @@ const defaultFilters: TimelineFilters = {
   endYear: 500,
   eventTypes: timelineEventTypes,
 };
+
+const playbackPrefetchThreshold = 10;
 
 function buildTimelineUrl(filters: TimelineFilters, cursor?: string) {
   const params = new URLSearchParams({
@@ -70,12 +74,17 @@ export function TimelineExperience() {
   const [filters, setFilters] = useState<TimelineFilters>(defaultFilters);
   const [zoom, setZoom] = useState(2);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEventSummary | null>(null);
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [totalApprox, setTotalApprox] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPrefetching, setIsPrefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
+  const activeEvent = events[activeEventIndex] ?? null;
 
   useEffect(() => {
     let active = true;
@@ -95,12 +104,16 @@ export function TimelineExperience() {
           setEvents(page.events);
           setNextCursor(page.nextCursor);
           setTotalApprox(page.totalApprox);
+          setActiveEventIndex(0);
+          setIsPlaying(false);
         }
       } catch {
         if (active) {
           setEvents([]);
           setNextCursor(undefined);
           setTotalApprox(0);
+          setActiveEventIndex(0);
+          setIsPlaying(false);
           setError("Timeline data is unavailable.");
         }
       } finally {
@@ -117,12 +130,63 @@ export function TimelineExperience() {
     };
   }, [filterKey]);
 
-  async function loadMore() {
-    if (!nextCursor || isLoading) {
+  useEffect(() => {
+    if (activeEventIndex <= events.length - 1) {
       return;
     }
 
-    setIsLoading(true);
+    setActiveEventIndex(Math.max(0, events.length - 1));
+  }, [activeEventIndex, events.length]);
+
+  useEffect(() => {
+    if (!isPlaying || events.length === 0) {
+      return;
+    }
+
+    if (activeEventIndex >= events.length - 1) {
+      if (!nextCursor) {
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    const activeDescriptionLength = activeEvent?.description.length ?? 0;
+    const readingDelay = Math.min(1800, activeDescriptionLength * 9);
+    const delay = Math.round((2600 + readingDelay) / playbackSpeed);
+
+    const timeout = window.setTimeout(() => {
+      setActiveEventIndex((current) => Math.min(current + 1, events.length - 1));
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeEvent?.description.length, activeEventIndex, events.length, isPlaying, nextCursor, playbackSpeed]);
+
+  useEffect(() => {
+    const remainingEvents = events.length - activeEventIndex;
+    if (
+      !isPlaying ||
+      !nextCursor ||
+      isLoading ||
+      isPrefetching ||
+      remainingEvents > playbackPrefetchThreshold
+    ) {
+      return;
+    }
+
+    loadNextWindow({ prefetch: true });
+  }, [activeEventIndex, events.length, isLoading, isPlaying, isPrefetching, nextCursor]);
+
+  async function loadNextWindow({ prefetch = false }: { prefetch?: boolean } = {}) {
+    if (!nextCursor || isLoading || isPrefetching) {
+      return;
+    }
+
+    if (prefetch) {
+      setIsPrefetching(true);
+    } else {
+      setIsLoading(true);
+    }
+
     setError(null);
 
     try {
@@ -138,13 +202,35 @@ export function TimelineExperience() {
     } catch {
       setError("More timeline events could not be loaded.");
     } finally {
-      setIsLoading(false);
+      if (prefetch) {
+        setIsPrefetching(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   }
 
   function resetView() {
     setFilters(defaultFilters);
     setZoom(2);
+    setActiveEventIndex(0);
+    setIsPlaying(false);
+  }
+
+  function focusEvent(event: TimelineEventSummary) {
+    const nextIndex = events.findIndex((item) => item.eventId === event.eventId);
+    if (nextIndex >= 0) {
+      setActiveEventIndex(nextIndex);
+    }
+    setSelectedEvent(event);
+  }
+
+  function scrubPlayback(index: number) {
+    setActiveEventIndex(Math.max(0, Math.min(index, events.length - 1)));
+  }
+
+  function movePlayback(direction: -1 | 1) {
+    setActiveEventIndex((current) => Math.max(0, Math.min(current + direction, events.length - 1)));
   }
 
   return (
@@ -189,19 +275,38 @@ export function TimelineExperience() {
             onZoomOut={() => setZoom((current) => Math.max(1, current - 1))}
             onReset={resetView}
           />
+          <TimelinePlaybackControls
+            isPlaying={isPlaying}
+            activeIndex={activeEventIndex}
+            totalEvents={events.length}
+            speed={playbackSpeed}
+            isPrefetching={isPrefetching}
+            onPlayPause={() => setIsPlaying((current) => !current)}
+            onPrevious={() => movePlayback(-1)}
+            onNext={() => movePlayback(1)}
+            onSpeedChange={setPlaybackSpeed}
+            onScrub={scrubPlayback}
+          />
+          <TimelineSpotlight event={activeEvent} />
           <div className="grid lg:grid-cols-[300px_1fr]">
             <TimelineFilter filters={filters} minYear={-800} maxYear={500} onChange={setFilters} />
-            <Timeline events={events} zoom={zoom} onSelect={setSelectedEvent} />
+            <Timeline
+              events={events}
+              zoom={zoom}
+              activeEventId={activeEvent?.eventId}
+              activeEventIndex={activeEventIndex}
+              onSelect={focusEvent}
+            />
           </div>
           <div className="border-t border-white/10 bg-[#171918] p-4">
             {error ? <p className="mb-3 text-sm text-[#e99180]">{error}</p> : null}
             <button
               type="button"
-              onClick={loadMore}
-              disabled={!nextCursor || isLoading}
+              onClick={() => loadNextWindow()}
+              disabled={!nextCursor || isLoading || isPrefetching}
               className="h-11 border border-verdigris/60 bg-verdigris/10 px-4 text-sm font-semibold text-[#91d9d4] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isLoading ? "Loading..." : nextCursor ? "Load next window" : "No more events"}
+              {isLoading || isPrefetching ? "Loading..." : nextCursor ? "Load next window" : "No more events"}
             </button>
           </div>
           <TimelineNavigation

@@ -80,6 +80,9 @@ export default function Home() {
             <a className="transition hover:text-bone" href="#demo">
               Demo
             </a>
+            <a className="transition hover:text-bone" href="/timeline">
+              Timeline
+            </a>
           </div>
         </nav>
 
@@ -106,6 +109,12 @@ export default function Home() {
               className="inline-flex h-12 items-center justify-center border border-bone/25 bg-bone/5 px-6 text-sm font-semibold text-bone transition hover:border-bone/55 hover:bg-bone/10"
             >
               Explore scenarios
+            </a>
+            <a
+              href="/timeline"
+              className="inline-flex h-12 items-center justify-center border border-verdigris/55 bg-verdigris/10 px-6 text-sm font-semibold text-[#9dd8d3] transition hover:bg-verdigris/18"
+            >
+              Open timeline
             </a>
           </div>
         </div>

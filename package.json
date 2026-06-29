@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "ingest:wikidata:rome": "tsx scripts/ingest-roman-empire.ts",
-    "enrich:wikipedia": "tsx scripts/enrich-wikipedia.ts"
+    "enrich:wikipedia": "tsx scripts/enrich-wikipedia.ts",
+    "db:reset:scenario": "tsx scripts/db-reset-scenario.ts",
+    "validate:scenario": "tsx scripts/validate-scenario.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

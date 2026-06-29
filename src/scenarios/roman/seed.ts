@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { PoolClient } from "pg";
 import { runSparqlQuery } from "../../lib/wikidata/sparqlClient";
 import { getWikidataId, inferEntityType, inferEventType, parsePoint, parseYear } from "../../lib/wikidata/mappers";
+import { linkEntitySource, linkEventSource, upsertSource } from "../../services/source-attribution";
 import { ROMAN_ENTITIES_QUERY, ROMAN_EVENTS_QUERY } from "./wikidata";
 
 type EntityRow = {
@@ -131,7 +132,16 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
       ]
     );
 
-    entityNameToId.set(row.entityLabel, result.rows[0].entity_id);
+    const dbEntityId = result.rows[0].entity_id;
+    const wikidataSourceId = await upsertSource(client, {
+      sourceType: "wikidata",
+      sourceUrl: row.entity,
+      title: row.entityLabel,
+      metadata: { wikidata_id: wikidataId },
+    });
+
+    await linkEntitySource(client, dbEntityId, wikidataSourceId);
+    entityNameToId.set(row.entityLabel, dbEntityId);
   }
 
   for (const row of events) {
@@ -140,7 +150,7 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
     const { latitude, longitude } = parsePoint(row.coord);
     const year = parseYear(row.date);
 
-    await client.query(
+    const result = await client.query<{ event_id: string }>(
       `
       INSERT INTO events (
         event_id,
@@ -167,6 +177,7 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         longitude = EXCLUDED.longitude,
         source_url = EXCLUDED.source_url,
         source_metadata = EXCLUDED.source_metadata
+      RETURNING event_id
       `,
       [
         eventId,
@@ -186,6 +197,19 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         },
       ]
     );
+
+    const dbEventId = result.rows[0].event_id;
+    const wikidataSourceId = await upsertSource(client, {
+      sourceType: "wikidata",
+      sourceUrl: row.event,
+      title: row.eventLabel,
+      metadata: {
+        wikidata_id: wikidataId,
+        raw_date: row.date ?? null,
+      },
+    });
+
+    await linkEventSource(client, dbEventId, wikidataSourceId);
   }
 
   const relationships = [
@@ -221,7 +245,14 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         getEntityIdByName(entityNameToId, targetName),
         relationshipType,
         0.8,
-        { source: "manual_wikidata_seed" },
+        {
+          sources: [
+            {
+              type: "manual_wikidata_seed",
+              url: "https://www.wikidata.org/",
+            },
+          ],
+        },
       ]
     );
   }

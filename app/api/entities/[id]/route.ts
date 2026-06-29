@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "../../../../src/lib/db/client";
+import { formatSource, getEntitySources } from "../../../../src/services/source-attribution";
 
 export const dynamic = "force-dynamic";
 
@@ -38,5 +39,12 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Entity not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ entity: result.rows[0] });
+  const sources = await getEntitySources(pool, id);
+
+  return NextResponse.json({
+    entity: {
+      ...result.rows[0],
+      sources: sources.map(formatSource),
+    },
+  });
 }

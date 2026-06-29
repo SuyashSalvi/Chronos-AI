@@ -10,10 +10,10 @@ SELECT ?entity ?entityLabel ?description ?coord WHERE {
     wd:Q1048     # Julius Caesar
     wd:Q1405     # Augustus
     wd:Q8413     # Constantine the Great
-    wd:Q46887    # Romulus Augustulus
-    wd:Q15855    # Goths
-    wd:Q12559    # Vandals
-    wd:Q11363    # Huns
+    wd:Q130601   # Romulus Augustulus / Romulus Augustus
+    wd:Q42193    # Goths
+    wd:Q42211    # Vandals
+    wd:Q45813    # Huns
   }
 
   OPTIONAL { ?entity schema:description ?description FILTER(LANG(?description) = "en") }
@@ -28,13 +28,13 @@ SELECT ?entity ?entityLabel ?description ?coord WHERE {
 export const ROMAN_EVENTS_QUERY = `
 SELECT ?event ?eventLabel ?description ?date ?coord WHERE {
   VALUES ?event {
-    wd:Q218143    # Battle of Actium
-    wd:Q858089    # Crisis of the Third Century
-    wd:Q179026    # Sack of Rome 410
-    wd:Q46770     # Sack of Rome 455
-    wd:Q274650    # Fall of the Western Roman Empire
-    wd:Q123738    # Punic Wars
-    wd:Q170752    # Second Punic War
+    wd:Q160387    # Battle of Actium
+    wd:Q329838    # Crisis of the Third Century
+    wd:Q1463845   # Sack of Rome 410
+    wd:Q1463832   # Sack of Rome 455
+    wd:Q608613    # Fall of the Western Roman Empire
+    wd:Q124988    # Punic Wars
+    wd:Q6271      # Second Punic War
   }
 
   OPTIONAL { ?event schema:description ?description FILTER(LANG(?description) = "en") }

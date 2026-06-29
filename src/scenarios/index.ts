@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import type { ScenarioDefinition, ScenarioSlug } from "./types";
 import { loadRomanScenario } from "./roman/seed";
+import { ROMAN_ALLOWED_ENTITIES, ROMAN_DENIED_TERMS } from "./roman/quality";
 import { loadMongolScenario } from "./mongol/seed";
 import { loadWw1Scenario } from "./ww1/seed";
 
@@ -9,6 +10,15 @@ export const scenarios: Record<ScenarioSlug, ScenarioDefinition> = {
     slug: "roman",
     name: "Roman Empire",
     load: loadRomanScenario,
+    quality: {
+      allowedEntities: ROMAN_ALLOWED_ENTITIES,
+      deniedTerms: ROMAN_DENIED_TERMS,
+      minimums: {
+        entities: 10,
+        events: 5,
+        relationships: 5,
+      },
+    },
   },
   mongol: {
     slug: "mongol",
@@ -30,3 +40,5 @@ export async function loadScenario(slug: ScenarioSlug, client: PoolClient): Prom
 
   await scenario.load(client);
 }
+
+export type { ScenarioSlug };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "../../../../src/lib/db/client";
+import { formatSource, getEventSources } from "../../../../src/services/source-attribution";
 
 export const dynamic = "force-dynamic";
 
@@ -42,5 +43,12 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ event: result.rows[0] });
+  const sources = await getEventSources(pool, id);
+
+  return NextResponse.json({
+    event: {
+      ...result.rows[0],
+      sources: sources.map(formatSource),
+    },
+  });
 }

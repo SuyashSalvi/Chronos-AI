@@ -28,7 +28,7 @@ export function inferEntityType(name: string): string {
 
   if (lower.includes("empire")) return "empire";
   if (lower.includes("rome") || lower.includes("constantinople") || lower.includes("carthage")) return "city";
-  if (["julius caesar", "augustus", "constantine the great", "romulus augustulus"].includes(lower)) {
+  if (["julius caesar", "augustus", "constantine the great", "romulus augustus", "romulus augustulus"].includes(lower)) {
     return "person";
   }
 

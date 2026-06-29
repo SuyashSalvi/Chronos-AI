@@ -1,5 +1,6 @@
 import { pool } from "../lib/db/client";
 import { getArticle, type WikipediaArticle } from "../lib/wikipedia/wikipedia-client";
+import { linkEntitySource, linkEventSource, upsertSource } from "./source-attribution";
 
 type EnrichmentTarget = {
   id: string;
@@ -101,6 +102,24 @@ async function updateTarget(target: EnrichmentTarget, data: EnrichmentData): Pro
       target.id,
     ]
   );
+
+  if (!data.wikipediaUrl) return;
+
+  const sourceId = await upsertSource(pool, {
+    sourceType: "wikipedia",
+    sourceUrl: data.wikipediaUrl,
+    title: target.name,
+    metadata: {
+      thumbnail: data.wikipediaThumbnail,
+      description: data.wikipediaDescription,
+    },
+  });
+
+  if (target.tableName === "entities") {
+    await linkEntitySource(pool, target.id, sourceId);
+  } else {
+    await linkEventSource(pool, target.id, sourceId);
+  }
 }
 
 export async function enrichWikipediaProfiles(): Promise<void> {

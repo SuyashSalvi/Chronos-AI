@@ -14,8 +14,8 @@ export const scenarios: Record<ScenarioSlug, ScenarioDefinition> = {
       allowedEntities: ROMAN_ALLOWED_ENTITIES,
       deniedTerms: ROMAN_DENIED_TERMS,
       minimums: {
-        entities: 10,
-        events: 5,
+        entities: 60,
+        events: 20,
         relationships: 5,
       },
     },

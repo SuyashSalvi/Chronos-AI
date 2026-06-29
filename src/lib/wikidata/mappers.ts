@@ -23,12 +23,31 @@ export function parsePoint(coord?: string): { latitude: number | null; longitude
   };
 }
 
-export function inferEntityType(name: string): string {
+export function inferEntityType(name: string, description?: string): string {
   const lower = name.toLowerCase();
+  const lowerDescription = description?.toLowerCase() ?? "";
 
   if (lower.includes("empire")) return "empire";
-  if (lower.includes("rome") || lower.includes("constantinople") || lower.includes("carthage")) return "city";
-  if (["julius caesar", "augustus", "constantine the great", "romulus augustus", "romulus augustulus"].includes(lower)) {
+  if (lower.includes("dynasty")) return "dynasty";
+  if (
+    lower.includes("province") ||
+    ["roman britain", "roman gaul", "hispania", "roman egypt", "judaea", "macedonia", "asia"].includes(lower)
+  ) {
+    return "province";
+  }
+  if (
+    lower.includes("rome") ||
+    lower.includes("constantinople") ||
+    lower.includes("carthage") ||
+    lowerDescription.includes("city")
+  ) {
+    return "city";
+  }
+  if (
+    lowerDescription.includes("roman emperor") ||
+    lowerDescription.includes("emperor of the roman") ||
+    ["julius caesar", "augustus", "constantine the great", "romulus augustus", "romulus augustulus"].includes(lower)
+  ) {
     return "person";
   }
 

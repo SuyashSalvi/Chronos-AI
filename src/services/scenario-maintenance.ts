@@ -142,9 +142,10 @@ export async function validateScenario(slug: string): Promise<ValidationResult> 
 
     const allowed = new Set(scenario.quality?.allowedEntities ?? []);
     if (allowed.size > 0) {
-      for (const entity of entities.rows) {
-        if (!allowed.has(entity.name)) {
-          errors.push(`Unexpected entity in ${scenario.name}: ${entity.name}`);
+      const actualNames = new Set(entities.rows.map((entity) => entity.name));
+      for (const expectedName of allowed) {
+        if (!actualNames.has(expectedName)) {
+          errors.push(`Expected core entity missing from ${scenario.name}: ${expectedName}`);
         }
       }
     }
@@ -153,7 +154,7 @@ export async function validateScenario(slug: string): Promise<ValidationResult> 
     for (const entity of entities.rows) {
       const haystack = `${entity.name} ${entity.summary ?? ""} ${entity.wikipedia_summary ?? ""}`.toLowerCase();
       for (const term of deniedTerms) {
-        if (haystack.includes(term)) {
+        if (containsDeniedTerm(haystack, term)) {
           errors.push(`Denied term "${term}" found on entity: ${entity.name}`);
         }
       }
@@ -204,4 +205,14 @@ export async function validateScenario(slug: string): Promise<ValidationResult> 
   } finally {
     client.release();
   }
+}
+
+function containsDeniedTerm(haystack: string, term: string): boolean {
+  const normalizedTerm = term.toLowerCase();
+  if (normalizedTerm.includes(" ")) {
+    return haystack.includes(normalizedTerm);
+  }
+
+  const escapedTerm = normalizedTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escapedTerm}\\b`).test(haystack);
 }

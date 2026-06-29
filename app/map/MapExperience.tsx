@@ -9,22 +9,24 @@ import {
   type HistoricalMapFilters,
   type HistoricalMapMarker,
   type HistoricalMapPage,
+  type HistoricalMapScenarioOption,
   type HistoricalMapViewport,
 } from "../../src/lib/map/types";
 
 const defaultFilters: HistoricalMapFilters = {
+  scenarioId: "",
   query: "",
   startYear: -800,
-  endYear: 500,
+  endYear: 2020,
   recordTypes: historicalMapRecordTypes,
   categories: historicalMapCategories,
 };
 
 const defaultBounds: HistoricalMapBounds = {
-  west: -12,
-  south: 25,
-  east: 45,
-  north: 56,
+  west: -15,
+  south: -5,
+  east: 150,
+  north: 65,
 };
 
 function serializeBounds(bounds: HistoricalMapBounds) {
@@ -41,6 +43,10 @@ function buildMapUrl(filters: HistoricalMapFilters, bounds: HistoricalMapBounds,
 
   if (filters.query.trim()) {
     params.set("q", filters.query.trim());
+  }
+
+  if (filters.scenarioId) {
+    params.set("scenario", filters.scenarioId);
   }
 
   if (filters.recordTypes.length !== historicalMapRecordTypes.length) {
@@ -80,6 +86,7 @@ function normalizeMapPage(payload: unknown): HistoricalMapPage {
 export function MapExperience() {
   const [markers, setMarkers] = useState<HistoricalMapMarker[]>([]);
   const [filters, setFilters] = useState<HistoricalMapFilters>(defaultFilters);
+  const [scenarios, setScenarios] = useState<HistoricalMapScenarioOption[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<HistoricalMapMarker | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [totalApprox, setTotalApprox] = useState(0);
@@ -93,6 +100,35 @@ export function MapExperience() {
 
   const filterKey = useMemo(() => JSON.stringify({ filters, appliedBounds }), [appliedBounds, filters]);
   const hasViewportChanges = serializeBounds(appliedBounds) !== serializeBounds(visibleBounds);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadScenarios() {
+      try {
+        const response = await fetch("/api/scenarios", { cache: "no-store" });
+        if (!response.ok) throw new Error("Scenario request failed");
+
+        const payload = await response.json();
+        const nextScenarios = Array.isArray(payload.scenarios)
+          ? payload.scenarios.map((scenario: any) => ({
+              scenarioId: scenario.scenario_id,
+              name: scenario.name,
+            }))
+          : [];
+
+        if (active) setScenarios(nextScenarios);
+      } catch {
+        if (active) setScenarios([]);
+      }
+    }
+
+    loadScenarios();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -244,7 +280,13 @@ export function MapExperience() {
             onReset={resetView}
           />
           <div className="grid lg:grid-cols-[300px_1fr] xl:grid-cols-[300px_1fr_320px]">
-            <MapFilter filters={filters} minYear={-800} maxYear={500} onChange={setFilters} />
+            <MapFilter
+              filters={filters}
+              minYear={-800}
+              maxYear={2020}
+              scenarios={scenarios}
+              onChange={setFilters}
+            />
             <HistoricalMap
               markers={markers}
               selectedMarkerId={selectedMarker?.markerId}

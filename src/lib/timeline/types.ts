@@ -31,10 +31,16 @@ export type TimelineEventSummary = {
 };
 
 export type TimelineFilters = {
+  scenarioId: string;
   query: string;
   startYear: number;
   endYear: number;
   eventTypes: TimelineEventType[];
+};
+
+export type TimelineScenarioOption = {
+  scenarioId: string;
+  name: string;
 };
 
 export const timelineEventTypes: TimelineEventType[] = [

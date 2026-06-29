@@ -15,12 +15,14 @@ import {
   type TimelineEventSummary,
   type TimelineFilters,
   type TimelinePage,
+  type TimelineScenarioOption,
 } from "../../src/lib/timeline/types";
 
 const defaultFilters: TimelineFilters = {
+  scenarioId: "",
   query: "",
   startYear: -800,
-  endYear: 500,
+  endYear: 2020,
   eventTypes: timelineEventTypes,
 };
 
@@ -35,6 +37,10 @@ function buildTimelineUrl(filters: TimelineFilters, cursor?: string) {
 
   if (filters.query.trim()) {
     params.set("q", filters.query.trim());
+  }
+
+  if (filters.scenarioId) {
+    params.set("scenario", filters.scenarioId);
   }
 
   if (filters.eventTypes.length !== timelineEventTypes.length) {
@@ -72,6 +78,7 @@ function normalizeTimelinePage(payload: unknown): TimelinePage {
 export function TimelineExperience() {
   const [events, setEvents] = useState<TimelineEventSummary[]>([]);
   const [filters, setFilters] = useState<TimelineFilters>(defaultFilters);
+  const [scenarios, setScenarios] = useState<TimelineScenarioOption[]>([]);
   const [zoom, setZoom] = useState(2);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEventSummary | null>(null);
   const [activeEventIndex, setActiveEventIndex] = useState(0);
@@ -85,6 +92,35 @@ export function TimelineExperience() {
 
   const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
   const activeEvent = events[activeEventIndex] ?? null;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadScenarios() {
+      try {
+        const response = await fetch("/api/scenarios", { cache: "no-store" });
+        if (!response.ok) throw new Error("Scenario request failed");
+
+        const payload = await response.json();
+        const nextScenarios = Array.isArray(payload.scenarios)
+          ? payload.scenarios.map((scenario: any) => ({
+              scenarioId: scenario.scenario_id,
+              name: scenario.name,
+            }))
+          : [];
+
+        if (active) setScenarios(nextScenarios);
+      } catch {
+        if (active) setScenarios([]);
+      }
+    }
+
+    loadScenarios();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -297,7 +333,13 @@ export function TimelineExperience() {
           />
           <TimelineSpotlight event={activeEvent} />
           <div className="grid lg:grid-cols-[300px_1fr]">
-            <TimelineFilter filters={filters} minYear={-800} maxYear={500} onChange={setFilters} />
+            <TimelineFilter
+              filters={filters}
+              minYear={-800}
+              maxYear={2020}
+              scenarios={scenarios}
+              onChange={setFilters}
+            />
             <Timeline
               events={events}
               zoom={zoom}

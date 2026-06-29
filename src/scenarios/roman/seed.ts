@@ -4,6 +4,7 @@ import { runSparqlQuery } from "../../lib/wikidata/sparqlClient";
 import { getWikidataId, inferEntityType, inferEventType, parsePoint, parseYear } from "../../lib/wikidata/mappers";
 import { linkEntitySource, linkEventSource, upsertSource } from "../../services/source-attribution";
 import { ROMAN_ENTITIES_QUERY, ROMAN_EVENTS_QUERY } from "./wikidata";
+import { ROMAN_ENTITY_OVERRIDES } from "./wikipedia";
 
 type EntityRow = {
   entity: string;
@@ -89,6 +90,8 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
   for (const row of entities) {
     const entityId = randomUUID();
     const wikidataId = getWikidataId(row.entity);
+    const override = ROMAN_ENTITY_OVERRIDES[wikidataId];
+    const entityName = override?.name ?? row.entityLabel;
     const { latitude, longitude } = parsePoint(row.coord);
 
     const result = await client.query<{ entity_id: string }>(
@@ -120,14 +123,15 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         entityId,
         scenarioId,
         wikidataId,
-        row.entityLabel,
-        inferEntityType(row.entityLabel),
+        entityName,
+        inferEntityType(entityName, row.description),
         row.description ?? null,
         latitude,
         longitude,
         {
           source: "wikidata",
           raw_uri: row.entity,
+          wikipedia_title: override?.wikipediaTitle ?? null,
         },
       ]
     );
@@ -136,12 +140,12 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
     const wikidataSourceId = await upsertSource(client, {
       sourceType: "wikidata",
       sourceUrl: row.entity,
-      title: row.entityLabel,
+      title: entityName,
       metadata: { wikidata_id: wikidataId },
     });
 
     await linkEntitySource(client, dbEntityId, wikidataSourceId);
-    entityNameToId.set(row.entityLabel, dbEntityId);
+    entityNameToId.set(entityName, dbEntityId);
   }
 
   for (const row of events) {

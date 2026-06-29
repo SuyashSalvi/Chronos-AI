@@ -53,7 +53,7 @@ export async function GET(request: Request) {
           WHEN name ILIKE $1 THEN 1.0
           WHEN COALESCE(wikipedia_summary, summary, '') ILIKE $1 THEN 0.6
           ELSE 0.2
-        END AS score
+        END::float AS score
       FROM entities
       WHERE (name ILIKE $1 OR summary ILIKE $1 OR wikipedia_summary ILIKE $1)
       ${entityTypeFilter}
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
           WHEN name ILIKE $1 THEN 1.0
           WHEN COALESCE(wikipedia_summary, description, '') ILIKE $1 THEN 0.6
           ELSE 0.2
-        END AS score
+        END::float AS score
       FROM events
       WHERE name ILIKE $1 OR description ILIKE $1 OR wikipedia_summary ILIKE $1
     `

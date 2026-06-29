@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMockTimelinePage } from "../../../src/lib/timeline/mockTimeline";
+import { getTimelinePage } from "../../../src/services/timeline-data";
 import { timelineEventTypes, type TimelineEventType, type TimelineQuery } from "../../../src/lib/timeline/types";
 
 export const dynamic = "force-dynamic";
@@ -39,5 +39,5 @@ export async function GET(request: Request) {
     limit: parseNumber(url.searchParams.get("limit")),
   };
 
-  return NextResponse.json(getMockTimelinePage(query));
+  return NextResponse.json(await getTimelinePage(query));
 }

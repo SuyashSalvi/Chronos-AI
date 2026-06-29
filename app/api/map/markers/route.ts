@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMockHistoricalMapPage } from "../../../../src/lib/map/mockMap";
+import { getHistoricalMapPage } from "../../../../src/services/map-data";
 import {
   historicalMapCategories,
   historicalMapRecordTypes,
@@ -75,5 +75,5 @@ export async function GET(request: Request) {
     limit: parseNumber(url.searchParams.get("limit")),
   };
 
-  return NextResponse.json(getMockHistoricalMapPage(query));
+  return NextResponse.json(await getHistoricalMapPage(query));
 }

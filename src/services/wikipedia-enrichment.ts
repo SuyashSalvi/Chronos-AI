@@ -5,6 +5,7 @@ import { linkEntitySource, linkEventSource, upsertSource } from "./source-attrib
 type EnrichmentTarget = {
   id: string;
   name: string;
+  wikipediaTitle?: string | null;
   tableName: "entities" | "events";
   idColumn: "entity_id" | "event_id";
 };
@@ -50,18 +51,24 @@ function normalizeArticle(article: WikipediaArticle | null): EnrichmentData | nu
 }
 
 async function loadTargets(): Promise<EnrichmentTarget[]> {
-  const entityResult = await pool.query<Pick<EnrichmentTarget, "id" | "name">>(
+  const entityResult = await pool.query<Pick<EnrichmentTarget, "id" | "name" | "wikipediaTitle">>(
     `
-    SELECT entity_id AS id, name
+    SELECT
+      entity_id AS id,
+      name,
+      metadata_json ->> 'wikipedia_title' AS "wikipediaTitle"
     FROM entities
     WHERE wikipedia_summary IS NULL
     ORDER BY name
     `
   );
 
-  const eventResult = await pool.query<Pick<EnrichmentTarget, "id" | "name">>(
+  const eventResult = await pool.query<Pick<EnrichmentTarget, "id" | "name" | "wikipediaTitle">>(
     `
-    SELECT event_id AS id, name
+    SELECT
+      event_id AS id,
+      name,
+      NULL::text AS "wikipediaTitle"
     FROM events
     WHERE wikipedia_summary IS NULL
     ORDER BY name
@@ -133,7 +140,7 @@ export async function enrichWikipediaProfiles(): Promise<void> {
     await sleep(REQUEST_DELAY_MS);
 
     try {
-      const data = normalizeArticle(await getArticle(target.name));
+      const data = normalizeArticle(await getArticle(target.wikipediaTitle ?? target.name));
 
       if (!data?.wikipediaSummary) {
         skippedCount += 1;

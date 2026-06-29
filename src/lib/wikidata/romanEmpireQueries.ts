@@ -104,7 +104,10 @@ SELECT ?event ?eventLabel ?description ?date ?coord WHERE {
   }
 
   OPTIONAL { ?event schema:description ?description FILTER(LANG(?description) = "en") }
-  OPTIONAL { ?event wdt:P585 ?date }
+  OPTIONAL { ?event wdt:P585 ?pointInTime }
+  OPTIONAL { ?event wdt:P580 ?startTime }
+  OPTIONAL { ?event wdt:P571 ?inception }
+  BIND(COALESCE(?pointInTime, ?startTime, ?inception) AS ?date)
   OPTIONAL { ?event wdt:P625 ?coord }
 
   SERVICE wikibase:label {

@@ -55,11 +55,17 @@ export type HistoricalMapPage = {
 };
 
 export type HistoricalMapFilters = {
+  scenarioId: string;
   query: string;
   startYear: number;
   endYear: number;
   recordTypes: HistoricalMapRecordType[];
   categories: HistoricalMapCategory[];
+};
+
+export type HistoricalMapScenarioOption = {
+  scenarioId: string;
+  name: string;
 };
 
 export type HistoricalMapViewport = {

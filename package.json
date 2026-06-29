@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "ingest:wikidata:rome": "tsx scripts/ingest-roman-empire.ts",
+    "ingest:scenario": "tsx scripts/ingest-scenario.ts",
     "enrich:wikipedia": "tsx scripts/enrich-wikipedia.ts",
     "db:reset:scenario": "tsx scripts/db-reset-scenario.ts",
     "validate:scenario": "tsx scripts/validate-scenario.ts"

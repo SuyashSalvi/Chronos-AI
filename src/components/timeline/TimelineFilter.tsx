@@ -5,16 +5,18 @@ import {
   timelineEventTypes,
   type TimelineEventType,
   type TimelineFilters,
+  type TimelineScenarioOption,
 } from "../../lib/timeline/types";
 
 type TimelineFilterProps = {
   filters: TimelineFilters;
   minYear: number;
   maxYear: number;
+  scenarios: TimelineScenarioOption[];
   onChange: (filters: TimelineFilters) => void;
 };
 
-export function TimelineFilter({ filters, minYear, maxYear, onChange }: TimelineFilterProps) {
+export function TimelineFilter({ filters, minYear, maxYear, scenarios, onChange }: TimelineFilterProps) {
   function toggleType(type: TimelineEventType) {
     const nextTypes = filters.eventTypes.includes(type)
       ? filters.eventTypes.filter((item) => item !== type)
@@ -35,6 +37,22 @@ export function TimelineFilter({ filters, minYear, maxYear, onChange }: Timeline
   return (
     <aside className="border-b border-white/10 bg-ink p-4 lg:border-b-0 lg:border-r">
       <div className="grid gap-5">
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bone/45">Scenario</span>
+          <select
+            value={filters.scenarioId}
+            onChange={(event) => onChange({ ...filters, scenarioId: event.target.value })}
+            className="h-11 border border-white/12 bg-[#101214] px-3 text-sm text-bone outline-none focus:border-verdigris/70"
+          >
+            <option value="">All histories</option>
+            {scenarios.map((scenario) => (
+              <option key={scenario.scenarioId} value={scenario.scenarioId}>
+                {scenario.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bone/45">Search</span>
           <input

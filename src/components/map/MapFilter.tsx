@@ -7,16 +7,18 @@ import {
   type HistoricalMapCategory,
   type HistoricalMapFilters,
   type HistoricalMapRecordType,
+  type HistoricalMapScenarioOption,
 } from "../../lib/map/types";
 
 type MapFilterProps = {
   filters: HistoricalMapFilters;
   minYear: number;
   maxYear: number;
+  scenarios: HistoricalMapScenarioOption[];
   onChange: (filters: HistoricalMapFilters) => void;
 };
 
-export function MapFilter({ filters, minYear, maxYear, onChange }: MapFilterProps) {
+export function MapFilter({ filters, minYear, maxYear, scenarios, onChange }: MapFilterProps) {
   function updateYear(field: "startYear" | "endYear", value: string) {
     const year = Number(value);
     if (Number.isNaN(year)) {
@@ -45,6 +47,22 @@ export function MapFilter({ filters, minYear, maxYear, onChange }: MapFilterProp
   return (
     <aside className="border-b border-white/10 bg-ink p-4 lg:border-b-0 lg:border-r">
       <div className="grid gap-5">
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bone/45">Scenario</span>
+          <select
+            value={filters.scenarioId}
+            onChange={(event) => onChange({ ...filters, scenarioId: event.target.value })}
+            className="h-11 border border-white/12 bg-[#101214] px-3 text-sm text-bone outline-none focus:border-verdigris/70"
+          >
+            <option value="">All histories</option>
+            {scenarios.map((scenario) => (
+              <option key={scenario.scenarioId} value={scenario.scenarioId}>
+                {scenario.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bone/45">Search</span>
           <input

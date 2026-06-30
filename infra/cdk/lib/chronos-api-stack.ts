@@ -10,11 +10,25 @@ import type { Construct } from "constructs";
 const CHRONOS_VPC_ID = "vpc-06c7f7bc511189939";
 const CHRONOS_DB_SECURITY_GROUP_ID = "sg-0afc097642472c5f5";
 
+function lambdaSubnetType(value?: string): ec2.SubnetType {
+  switch (value) {
+    case "PRIVATE_WITH_EGRESS":
+      return ec2.SubnetType.PRIVATE_WITH_EGRESS;
+    case "PRIVATE_ISOLATED":
+      return ec2.SubnetType.PRIVATE_ISOLATED;
+    case "PUBLIC":
+      return ec2.SubnetType.PUBLIC;
+    default:
+      return ec2.SubnetType.PUBLIC;
+  }
+}
+
 export class ChronosApiStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const databaseUrl = process.env.DATABASE_URL ?? this.node.tryGetContext("databaseUrl") ?? "";
+    const subnetType = lambdaSubnetType(process.env.CHRONOS_LAMBDA_SUBNET_TYPE ?? this.node.tryGetContext("lambdaSubnetType"));
     const vpc = ec2.Vpc.fromLookup(this, "ChronosVpc", {
       vpcId: CHRONOS_VPC_ID,
     });
@@ -34,8 +48,12 @@ export class ChronosApiStack extends Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       architecture: lambda.Architecture.ARM_64,
       memorySize: 256,
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(30),
       vpc,
+      vpcSubnets: {
+        subnetType,
+      },
+      allowPublicSubnet: subnetType === ec2.SubnetType.PUBLIC,
       securityGroups: [lambdaSg],
       environment: {
         DATABASE_URL: databaseUrl,

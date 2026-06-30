@@ -26,6 +26,8 @@ export async function handler(event: ApiGatewayEvent) {
   }
 
   try {
+    console.log("Starting entities query");
+    const startedAt = Date.now();
     const result = await getPool().query(
       `
       SELECT
@@ -39,6 +41,10 @@ export async function handler(event: ApiGatewayEvent) {
       LIMIT 100
       `
     );
+    console.log("Entities query complete", {
+      rowCount: result.rowCount,
+      durationMs: Date.now() - startedAt,
+    });
 
     return jsonResponse(200, { entities: result.rows });
   } catch (error) {

@@ -17,6 +17,7 @@ import {
   type TimelinePage,
   type TimelineScenarioOption,
 } from "../../src/lib/timeline/types";
+import { apiUrl } from "../../src/lib/api";
 
 const defaultFilters: TimelineFilters = {
   scenarioId: "",
@@ -51,7 +52,7 @@ function buildTimelineUrl(filters: TimelineFilters, cursor?: string) {
     params.set("cursor", cursor);
   }
 
-  return `/api/timeline?${params.toString()}`;
+  return apiUrl(`/timeline?${params.toString()}`);
 }
 
 function normalizeTimelinePage(payload: unknown): TimelinePage {

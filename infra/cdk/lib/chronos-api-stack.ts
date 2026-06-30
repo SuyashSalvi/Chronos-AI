@@ -41,10 +41,8 @@ export class ChronosApiStack extends Stack {
 
     dbSg.addIngressRule(lambdaSg, ec2.Port.tcp(5432), "Allow Chronos Lambda to Aurora PostgreSQL");
 
-    const entitiesFunction = new NodejsFunction(this, "EntitiesFunction", {
-      entry: path.join(__dirname, "../../../services/api/entities/handler.ts"),
+    const lambdaDefaults = {
       projectRoot: path.join(__dirname, "../../.."),
-      handler: "handler",
       runtime: lambda.Runtime.NODEJS_20_X,
       architecture: lambda.Architecture.ARM_64,
       memorySize: 256,
@@ -61,6 +59,18 @@ export class ChronosApiStack extends Stack {
         DB_POOL_MAX: process.env.DB_POOL_MAX ?? "2",
         CORS_ORIGIN: process.env.CORS_ORIGIN ?? "*",
       },
+    };
+
+    const entitiesFunction = new NodejsFunction(this, "EntitiesFunction", {
+      ...lambdaDefaults,
+      entry: path.join(__dirname, "../../../services/api/entities/handler.ts"),
+      handler: "handler",
+    });
+
+    const eventsFunction = new NodejsFunction(this, "EventsFunction", {
+      ...lambdaDefaults,
+      entry: path.join(__dirname, "../../../services/api/events/handler.ts"),
+      handler: "handler",
     });
 
     const api = new apigateway.RestApi(this, "ChronosApi", {
@@ -76,9 +86,16 @@ export class ChronosApiStack extends Stack {
       },
     });
 
-    api.root
-      .addResource("entities")
-      .addMethod("GET", new apigateway.LambdaIntegration(entitiesFunction));
+    api.root.addResource("entities").addMethod("GET", new apigateway.LambdaIntegration(entitiesFunction));
+
+    const events = api.root.addResource("events");
+    events.addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
+
+    const eventById = events.addResource("{id}");
+    eventById.addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
+    eventById.addResource("entities").addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
+
+    api.root.addResource("timeline").addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
 
     new CfnOutput(this, "ChronosApiUrl", {
       value: api.url,

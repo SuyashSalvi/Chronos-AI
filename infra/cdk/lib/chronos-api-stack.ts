@@ -79,6 +79,12 @@ export class ChronosApiStack extends Stack {
       handler: "handler",
     });
 
+    const mapMarkersFunction = new NodejsFunction(this, "MapMarkersFunction", {
+      ...lambdaDefaults,
+      entry: path.join(__dirname, "../../../services/api/map/markers/handler.ts"),
+      handler: "handler",
+    });
+
     const api = new apigateway.RestApi(this, "ChronosApi", {
       restApiName: "chronos-api",
       description: "Chronos AI production API Gateway.",
@@ -108,6 +114,9 @@ export class ChronosApiStack extends Stack {
 
     scenarios.addResource("load").addMethod("POST", new apigateway.LambdaIntegration(scenariosFunction));
     scenarios.addResource("{id}").addMethod("GET", new apigateway.LambdaIntegration(scenariosFunction));
+
+    const map = api.root.addResource("map");
+    map.addResource("markers").addMethod("GET", new apigateway.LambdaIntegration(mapMarkersFunction));
 
     new CfnOutput(this, "ChronosApiUrl", {
       value: api.url,

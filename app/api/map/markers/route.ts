@@ -64,12 +64,12 @@ function parseBounds(value: string | null): HistoricalMapBounds | undefined {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query: HistoricalMapQuery = {
-    scenarioId: url.searchParams.get("scenario") ?? undefined,
-    query: url.searchParams.get("q") ?? undefined,
+    scenarioId: url.searchParams.get("scenarioId") ?? url.searchParams.get("scenario") ?? undefined,
+    query: url.searchParams.get("search") ?? url.searchParams.get("q") ?? undefined,
     startYear: parseNumber(url.searchParams.get("startYear")),
     endYear: parseNumber(url.searchParams.get("endYear")),
-    recordTypes: parseRecordTypes(url.searchParams.get("recordType")),
-    categories: parseCategories(url.searchParams.get("category")),
+    recordTypes: parseRecordTypes(url.searchParams.get("recordTypes") ?? url.searchParams.get("recordType")),
+    categories: parseCategories(url.searchParams.get("categories") ?? url.searchParams.get("category")),
     bounds: parseBounds(url.searchParams.get("bounds")),
     cursor: url.searchParams.get("cursor") ?? undefined,
     limit: parseNumber(url.searchParams.get("limit")),

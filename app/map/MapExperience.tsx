@@ -62,7 +62,7 @@ function buildMapUrl(filters: HistoricalMapFilters, bounds: HistoricalMapBounds,
     params.set("cursor", cursor);
   }
 
-  return `/api/map/markers?${params.toString()}`;
+  return apiUrl(`/map/markers?${params.toString()}`);
 }
 
 function normalizeMapPage(payload: unknown): HistoricalMapPage {

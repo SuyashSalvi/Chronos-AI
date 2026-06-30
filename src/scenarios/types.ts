@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 
-export type ScenarioSlug = "roman" | "mongol" | "ww1";
+export type ScenarioSlug = string;
 
 export type ScenarioDefinition = {
   slug: ScenarioSlug;

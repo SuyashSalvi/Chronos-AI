@@ -4,6 +4,7 @@ import { loadRomanScenario } from "./roman/seed";
 import { ROMAN_ALLOWED_ENTITIES, ROMAN_DENIED_TERMS } from "./roman/quality";
 import { loadMongolScenario } from "./mongol/seed";
 import { loadWw1Scenario } from "./ww1/seed";
+import { broadHistoricalScenarios } from "./broadHistoricalSeeds";
 
 export const scenarios: Record<ScenarioSlug, ScenarioDefinition> = {
   roman: {
@@ -30,6 +31,7 @@ export const scenarios: Record<ScenarioSlug, ScenarioDefinition> = {
     name: "World War I",
     load: loadWw1Scenario,
   },
+  ...broadHistoricalScenarios,
 };
 
 export async function loadScenario(slug: ScenarioSlug, client: PoolClient): Promise<void> {

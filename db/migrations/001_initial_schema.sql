@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
 CREATE TABLE IF NOT EXISTS entities (
   entity_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   scenario_id UUID REFERENCES scenarios(scenario_id),
-  wikidata_id TEXT UNIQUE,
+  wikidata_id TEXT,
   name TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   summary TEXT,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS entities (
 CREATE TABLE IF NOT EXISTS events (
   event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   scenario_id UUID REFERENCES scenarios(scenario_id),
-  wikidata_id TEXT UNIQUE,
+  wikidata_id TEXT,
   name TEXT NOT NULL,
   description TEXT,
   event_type TEXT,
@@ -55,6 +55,12 @@ CREATE TABLE IF NOT EXISTS relationships (
 
 CREATE UNIQUE INDEX IF NOT EXISTS relationships_unique_edge
 ON relationships (scenario_id, source_entity_id, target_entity_id, relationship_type);
+
+CREATE UNIQUE INDEX IF NOT EXISTS entities_scenario_wikidata_unique
+ON entities (scenario_id, wikidata_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS events_scenario_wikidata_unique
+ON events (scenario_id, wikidata_id);
 
 CREATE TABLE IF NOT EXISTS event_entities (
   event_id UUID REFERENCES events(event_id),

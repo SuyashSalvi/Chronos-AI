@@ -108,9 +108,8 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         metadata_json
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      ON CONFLICT (wikidata_id)
+      ON CONFLICT (scenario_id, wikidata_id)
       DO UPDATE SET
-        scenario_id = EXCLUDED.scenario_id,
         name = EXCLUDED.name,
         entity_type = EXCLUDED.entity_type,
         summary = EXCLUDED.summary,
@@ -170,9 +169,8 @@ export async function loadRomanScenario(client: PoolClient): Promise<void> {
         source_metadata
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      ON CONFLICT (wikidata_id)
+      ON CONFLICT (scenario_id, wikidata_id)
       DO UPDATE SET
-        scenario_id = EXCLUDED.scenario_id,
         name = EXCLUDED.name,
         description = EXCLUDED.description,
         event_type = EXCLUDED.event_type,

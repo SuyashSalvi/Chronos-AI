@@ -1,0 +1,70 @@
+import * as path from "path";
+import * as cdk from "aws-cdk-lib";
+import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import type { Construct } from "constructs";
+
+const CHRONOS_VPC_ID = "vpc-06c7f7bc511189939";
+const CHRONOS_DB_SECURITY_GROUP_ID = "sg-0afc097642472c5f5";
+
+export class ChronosApiStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+    const databaseUrl = process.env.DATABASE_URL ?? this.node.tryGetContext("databaseUrl") ?? "";
+    const vpc = ec2.Vpc.fromLookup(this, "ChronosVpc", {
+      vpcId: CHRONOS_VPC_ID,
+    });
+    const lambdaSg = new ec2.SecurityGroup(this, "ChronosLambdaSg", {
+      vpc,
+      allowAllOutbound: true,
+      description: "Security group for Chronos API Lambda functions.",
+    });
+    const dbSg = ec2.SecurityGroup.fromSecurityGroupId(this, "ChronosDbSg", CHRONOS_DB_SECURITY_GROUP_ID);
+
+    dbSg.addIngressRule(lambdaSg, ec2.Port.tcp(5432), "Allow Chronos Lambda to Aurora PostgreSQL");
+
+    const entitiesFunction = new NodejsFunction(this, "EntitiesFunction", {
+      entry: path.join(__dirname, "../../../services/api/entities/handler.ts"),
+      projectRoot: path.join(__dirname, "../../.."),
+      handler: "handler",
+      runtime: lambda.Runtime.NODEJS_20_X,
+      architecture: lambda.Architecture.ARM_64,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      vpc,
+      securityGroups: [lambdaSg],
+      environment: {
+        DATABASE_URL: databaseUrl,
+        DB_SSL: process.env.DB_SSL ?? "true",
+        DB_POOL_MAX: process.env.DB_POOL_MAX ?? "2",
+        CORS_ORIGIN: process.env.CORS_ORIGIN ?? "*",
+      },
+    });
+
+    const api = new apigateway.RestApi(this, "ChronosApi", {
+      restApiName: "chronos-api",
+      description: "Chronos AI production API Gateway.",
+      defaultCorsPreflightOptions: {
+        allowOrigins: [process.env.CORS_ORIGIN ?? "*"],
+        allowMethods: ["GET", "OPTIONS"],
+        allowHeaders: ["content-type", "authorization"],
+      },
+      deployOptions: {
+        stageName: process.env.CHRONOS_API_STAGE ?? "prod",
+      },
+    });
+
+    api.root
+      .addResource("entities")
+      .addMethod("GET", new apigateway.LambdaIntegration(entitiesFunction));
+
+    new CfnOutput(this, "ChronosApiUrl", {
+      value: api.url,
+      description: "Base URL for NEXT_PUBLIC_API_BASE_URL.",
+    });
+  }
+}

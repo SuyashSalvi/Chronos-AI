@@ -1,0 +1,25 @@
+{
+  "name": "chronos-api-cdk",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "chronos-api-cdk": "bin/chronos-api.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.204.0",
+    "constructs": "^10.4.2",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.20.0",
+    "aws-cdk": "^2.1029.2",
+    "esbuild": "^0.25.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

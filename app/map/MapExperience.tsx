@@ -12,6 +12,7 @@ import {
   type HistoricalMapScenarioOption,
   type HistoricalMapViewport,
 } from "../../src/lib/map/types";
+import { apiUrl } from "../../src/lib/api";
 
 const defaultFilters: HistoricalMapFilters = {
   scenarioId: "",
@@ -106,7 +107,7 @@ export function MapExperience() {
 
     async function loadScenarios() {
       try {
-        const response = await fetch("/api/scenarios", { cache: "no-store" });
+        const response = await fetch(apiUrl("/scenarios"), { cache: "no-store" });
         if (!response.ok) throw new Error("Scenario request failed");
 
         const payload = await response.json();

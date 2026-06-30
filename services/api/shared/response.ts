@@ -3,7 +3,7 @@ type JsonValue = Record<string, unknown> | unknown[];
 const defaultHeaders = {
   "access-control-allow-origin": process.env.CORS_ORIGIN ?? "*",
   "access-control-allow-headers": "content-type,authorization",
-  "access-control-allow-methods": "GET,OPTIONS",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
   "content-type": "application/json",
 };
 

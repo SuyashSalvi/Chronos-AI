@@ -73,12 +73,18 @@ export class ChronosApiStack extends Stack {
       handler: "handler",
     });
 
+    const scenariosFunction = new NodejsFunction(this, "ScenariosFunction", {
+      ...lambdaDefaults,
+      entry: path.join(__dirname, "../../../services/api/scenarios/handler.ts"),
+      handler: "handler",
+    });
+
     const api = new apigateway.RestApi(this, "ChronosApi", {
       restApiName: "chronos-api",
       description: "Chronos AI production API Gateway.",
       defaultCorsPreflightOptions: {
         allowOrigins: [process.env.CORS_ORIGIN ?? "*"],
-        allowMethods: ["GET", "OPTIONS"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
         allowHeaders: ["content-type", "authorization"],
       },
       deployOptions: {
@@ -96,6 +102,12 @@ export class ChronosApiStack extends Stack {
     eventById.addResource("entities").addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
 
     api.root.addResource("timeline").addMethod("GET", new apigateway.LambdaIntegration(eventsFunction));
+
+    const scenarios = api.root.addResource("scenarios");
+    scenarios.addMethod("GET", new apigateway.LambdaIntegration(scenariosFunction));
+
+    scenarios.addResource("load").addMethod("POST", new apigateway.LambdaIntegration(scenariosFunction));
+    scenarios.addResource("{id}").addMethod("GET", new apigateway.LambdaIntegration(scenariosFunction));
 
     new CfnOutput(this, "ChronosApiUrl", {
       value: api.url,
